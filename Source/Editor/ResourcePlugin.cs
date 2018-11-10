@@ -73,29 +73,92 @@ namespace ResourcesPlugin.Editor
 				}
 				ImportedContentFolder = Editor.ContentDatabase.Find(ImportedContentPath) as ContentFolder;
 
-				// TODO: Watch out, the FileSystemWatcher reports too many events (e.g. moving a file to a new folder = 2 extra "OnChanged" events)
+				// Synchronizes everything
+				SynchronizeFolders();
 
-				_resourcesWatcher = new FileSystemWatcher();
-				_resourcesWatcher.Path = ResourcesPath;
-				_resourcesWatcher.NotifyFilter = NotifyFilters.LastWrite;
-				_resourcesWatcher.Filter = "*.*";
-				_resourcesWatcher.IncludeSubdirectories = true;
-				_resourcesWatcher.EnableRaisingEvents = true;
-				_resourcesWatcher.InternalBufferSize = 8192; // Something large, the max is 65536
-
-				_resourcesWatcher.Created += _resoucesBuffer.AddEvent;
-				_resourcesWatcher.Changed += _resoucesBuffer.AddEvent;
-				_resourcesWatcher.Renamed += _resoucesBuffer.AddEvent;
-				_resourcesWatcher.Deleted += _resoucesBuffer.AddEvent;
-
-				_resourcesWatcher.Error += OnError;
-
-				_resoucesBuffer.Created += OnCreated;
-				_resoucesBuffer.Changed += OnChanged;
-				_resoucesBuffer.Deleted += OnDeleted;
-
-				_resoucesBuffer.Enabled = true;
+				FileSystemWatcherSetup();
 			}
+		}
+
+		private void SynchronizeFolders()
+		{
+			if (!(Directory.Exists(ResourcesPath) && Directory.Exists(ImportedContentPath))) return;
+
+			foreach (var importedFilePath in GetFiles(ImportedContentPath))
+			{
+			}
+
+			foreach (var resourceFilePath in GetFiles(ResourcesPath))
+			{
+				//GetNewPath(resourceFilePath)
+			}
+		}
+
+		// From: https://stackoverflow.com/a/929418/3492994
+		private static IEnumerable<string> GetFiles(string path)
+		{
+			Queue<string> queue = new Queue<string>();
+			queue.Enqueue(path);
+			while (queue.Count > 0)
+			{
+				path = queue.Dequeue();
+				try
+				{
+					foreach (string subDir in Directory.GetDirectories(path))
+					{
+						queue.Enqueue(subDir);
+					}
+				}
+				catch (Exception ex)
+				{
+					Debug.LogError(ex);
+				}
+				string[] files = null;
+				try
+				{
+					files = Directory.GetFiles(path);
+				}
+				catch (Exception ex)
+				{
+					Debug.LogError(ex);
+				}
+				if (files != null)
+				{
+					for (int i = 0; i < files.Length; i++)
+					{
+						yield return files[i];
+					}
+				}
+			}
+		}
+
+		private void FileSystemWatcherSetup()
+		{
+			// Create the watcher
+			_resourcesWatcher = new FileSystemWatcher
+			{
+				Path = ResourcesPath,
+				NotifyFilter = NotifyFilters.LastWrite,
+				Filter = "*.*",
+				IncludeSubdirectories = true,
+				InternalBufferSize = 8192 // Something large, the max is 65536
+			};
+
+			// Hook up the events
+			_resourcesWatcher.Created += _resoucesBuffer.AddEvent;
+			_resourcesWatcher.Changed += _resoucesBuffer.AddEvent;
+			_resourcesWatcher.Renamed += _resoucesBuffer.AddEvent;
+			_resourcesWatcher.Deleted += _resoucesBuffer.AddEvent;
+
+			_resourcesWatcher.Error += OnError;
+
+			_resoucesBuffer.Created += OnCreated;
+			_resoucesBuffer.Changed += OnChanged;
+			_resoucesBuffer.Deleted += OnDeleted;
+
+			// Enable
+			_resourcesWatcher.EnableRaisingEvents = true;
+			_resoucesBuffer.Enabled = true;
 		}
 
 		private void OnCreated(string fullPath)
@@ -104,7 +167,8 @@ namespace ResourcesPlugin.Editor
 			string newPath = GetNewPath(fullPath);
 			if (File.Exists(newPath))
 			{
-				Editor.ContentImporting.Reimport(GetBinaryAssetItem(newPath));
+				var item = GetBinaryAssetItem(newPath);
+				Reimport(item);
 			}
 			else
 			{
@@ -123,7 +187,8 @@ namespace ResourcesPlugin.Editor
 			string newPath = GetNewPath(fullPath);
 			if (File.Exists(newPath))
 			{
-				Editor.ContentImporting.Reimport(GetBinaryAssetItem(newPath));
+				var item = GetBinaryAssetItem(newPath);
+				Reimport(item);
 			}
 			else
 			{
@@ -137,8 +202,7 @@ namespace ResourcesPlugin.Editor
 		private void OnDeleted(string fullPath)
 		{
 			Debug.Log("Deleted: " + fullPath);
-			string toDelete = StringUtils.GetPathWithoutExtension(GetNewPath(fullPath)) + ".flax";
-			var item = GetBinaryAssetItem(toDelete);
+			var item = GetBinaryAssetItem(GetNewPath(fullPath));
 			if (item != null)
 			{
 				Editor.ContentDatabase.Delete(item);
@@ -162,9 +226,14 @@ namespace ResourcesPlugin.Editor
 
 		private string GetNewPath(string importedResourcePath)
 		{
-			return StringUtils.NormalizePath(
-					StringUtils.CombinePaths(ImportedContentPath, GetResourcesRelativePath(importedResourcePath))
-				);
+			// Get the new absolute path
+			string newPath = StringUtils.CombinePaths(ImportedContentPath, GetResourcesRelativePath(importedResourcePath));
+
+			// Fix the extension
+			newPath = StringUtils.GetPathWithoutExtension(newPath) + ".flax";
+
+			// Return a properly normalized path
+			return StringUtils.NormalizePath(newPath);
 		}
 
 		private ContentFolder GetOrCreateFolder(string path)
@@ -181,6 +250,19 @@ namespace ResourcesPlugin.Editor
 		private BinaryAssetItem GetBinaryAssetItem(string path)
 		{
 			return Editor.ContentDatabase.Find(path) as BinaryAssetItem;
+		}
+
+		private void Reimport(BinaryAssetItem item)
+		{
+			Editor.ContentImporting.Reimport(item); // TODO: Settings!
+													// The window pops up every single time.
+
+			/*var asset = FlaxEngine.Content.LoadAsync(item.ID);
+			if (asset is BinaryAsset binaryAsset)
+			{
+				binaryAsset.WaitForLoaded(100);
+				binaryAsset.Reimport();
+			}*/
 		}
 
 		/// <inheritdoc />
