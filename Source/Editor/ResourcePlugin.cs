@@ -66,7 +66,6 @@ namespace ResourcesPlugin.Editor
 					Directory.CreateDirectory(ImportedContentPath);
 				}
 
-				// TODO: Full sync!
 				if (ImportedContentFolder?.ParentFolder != null)
 				{
 					Editor.ContentDatabase.RefreshFolder(Editor.ContentDatabase.ProjectContent.Folder, false);
@@ -86,11 +85,22 @@ namespace ResourcesPlugin.Editor
 
 			foreach (var importedFilePath in GetFiles(ImportedContentPath))
 			{
+				// TODO: Optimize this
+				var binaryAssetItem = GetBinaryAssetItem(importedFilePath);
+				binaryAssetItem.GetImportPath(out string importPath);
+				if (string.IsNullOrEmpty(importPath) || !File.Exists(importPath))
+				{
+					Editor.ContentDatabase.Delete(binaryAssetItem);
+				}
 			}
 
 			foreach (var resourceFilePath in GetFiles(ResourcesPath))
 			{
-				//GetNewPath(resourceFilePath)
+				// TODO: If it's newer, reimport it
+				if (!File.Exists(GetNewPath(resourceFilePath)))
+				{
+					OnCreated(resourceFilePath);
+				}
 			}
 		}
 
@@ -254,6 +264,7 @@ namespace ResourcesPlugin.Editor
 
 		private void Reimport(BinaryAssetItem item)
 		{
+			//var proxy = Editor.ContentDatabase.GetProxy(item);
 			Editor.ContentImporting.Reimport(item); // TODO: Settings!
 													// The window pops up every single time.
 
