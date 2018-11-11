@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cache\AssemblyInfo.cs" />
+    <Compile Include="Source\Editor\ContentItemExtensions.cs" />
     <Compile Include="Source\Editor\FileSystemWatcherBuffer.cs" />
     <Compile Include="Source\Editor\ResourcePlugin.cs" />
   </ItemGroup>

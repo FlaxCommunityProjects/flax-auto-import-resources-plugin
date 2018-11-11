@@ -71,6 +71,7 @@ namespace ResourcesPlugin.Editor
 					Editor.ContentDatabase.RefreshFolder(Editor.ContentDatabase.ProjectContent.Folder, false);
 				}
 				ImportedContentFolder = Editor.ContentDatabase.Find(ImportedContentPath) as ContentFolder;
+				Editor.ContentDatabase.ItemAdded += ContentDatabase_ItemAdded;
 
 				// Synchronizes everything
 				SynchronizeFolders();
@@ -79,65 +80,48 @@ namespace ResourcesPlugin.Editor
 			}
 		}
 
-		private void SynchronizeFolders()
+		private void ContentDatabase_ItemAdded(ContentItem contentItem)
 		{
-			if (!(Directory.Exists(ResourcesPath) && Directory.Exists(ImportedContentPath))) return;
-
-			foreach (var importedFilePath in GetFiles(ImportedContentPath))
+			// Hide the files in the Content/Resources folder
+			/*if (contentItem.IsChildOf(ResourcesContentFolder))
 			{
-				// TODO: Optimize this
-				var binaryAssetItem = GetBinaryAssetItem(importedFilePath);
-				binaryAssetItem.GetImportPath(out string importPath);
-				if (string.IsNullOrEmpty(importPath) || !File.Exists(importPath))
-				{
-					Editor.ContentDatabase.Delete(binaryAssetItem);
-				}
-			}
+				Debug.Log("child");
+				contentItem.Thumbnail = ResourcesContentFolder.Thumbnail;
+				contentItem.Width = 0;
+				contentItem.Height = 0;
+				contentItem.RefreshThumbnail();
+				contentItem.PerformLayout(true);
 
-			foreach (var resourceFilePath in GetFiles(ResourcesPath))
-			{
-				// TODO: If it's newer, reimport it
-				if (!File.Exists(GetNewPath(resourceFilePath)))
-				{
-					OnCreated(resourceFilePath);
-				}
-			}
+				//contentItem.BackgroundColor = Color.Red;
+				//contentItem. = "SHORT";
+				//contentItem.ParentFolder = ResourcesContentFolder;
+			}*/
 		}
 
-		// From: https://stackoverflow.com/a/929418/3492994
-		private static IEnumerable<string> GetFiles(string path)
+		private void SynchronizeFolders()
 		{
-			Queue<string> queue = new Queue<string>();
-			queue.Enqueue(path);
-			while (queue.Count > 0)
+			if (ImportedContentFolder == null || ResourcesContentFolder == null) return;
+
+			foreach (var importedFile in ImportedContentFolder.GetChildrenRecursive())
 			{
-				path = queue.Dequeue();
-				try
+				// TODO: Optimize this
+				if (importedFile is BinaryAssetItem binaryAssetItem)
 				{
-					foreach (string subDir in Directory.GetDirectories(path))
+					binaryAssetItem.GetImportPath(out string importPath);
+					bool hasSource = !string.IsNullOrEmpty(importPath) && File.Exists(importPath);
+					if (!hasSource)
 					{
-						queue.Enqueue(subDir);
+						Editor.ContentDatabase.Delete(binaryAssetItem);
 					}
 				}
-				catch (Exception ex)
+			}
+
+			foreach (var resourceFile in ResourcesContentFolder.GetChildrenRecursive())
+			{
+				// TODO: If it's newer, reimport it
+				if (!File.Exists(GetNewPath(resourceFile.Path)))
 				{
-					Debug.LogError(ex);
-				}
-				string[] files = null;
-				try
-				{
-					files = Directory.GetFiles(path);
-				}
-				catch (Exception ex)
-				{
-					Debug.LogError(ex);
-				}
-				if (files != null)
-				{
-					for (int i = 0; i < files.Length; i++)
-					{
-						yield return files[i];
-					}
+					OnCreated(resourceFile.Path);
 				}
 			}
 		}
@@ -264,21 +248,85 @@ namespace ResourcesPlugin.Editor
 
 		private void Reimport(BinaryAssetItem item)
 		{
-			//var proxy = Editor.ContentDatabase.GetProxy(item);
-			Editor.ContentImporting.Reimport(item); // TODO: Settings!
-													// The window pops up every single time.
-
-			/*var asset = FlaxEngine.Content.LoadAsync(item.ID);
-			if (asset is BinaryAsset binaryAsset)
+			switch (item.ItemDomain)
 			{
-				binaryAsset.WaitForLoaded(100);
-				binaryAsset.Reimport();
-			}*/
+			case ContentDomain.Animation:
+			{
+				break;
+			}
+			case ContentDomain.Audio:
+			{
+				break;
+			}
+			case ContentDomain.CubeTexture:
+			{
+				break;
+			}
+			case ContentDomain.Document:
+			{
+				break;
+			}
+			case ContentDomain.Font:
+			{
+				break;
+			}
+			case ContentDomain.IESProfile:
+			{
+				break;
+			}
+			case ContentDomain.Invalid:
+			{
+				break;
+			}
+			case ContentDomain.Material:
+			{
+				break;
+			}
+			case ContentDomain.Model:
+			{
+				break;
+			}
+			case ContentDomain.Other:
+			{
+				break;
+			}
+			case ContentDomain.Prefab:
+			{
+				break;
+			}
+			case ContentDomain.Scene:
+			{
+				break;
+			}
+			case ContentDomain.Shader:
+			{
+				break;
+			}
+			case ContentDomain.SkeletonMask:
+			{
+				break;
+			}
+			case ContentDomain.Texture:
+			{
+				break;
+			}
+			}
+			//var proxy = Editor.ContentDatabase.GetProxy(item);
+			//Editor.ContentImporting.Reimport(item); // TODO: Settings!
+			// The window pops up every single time.
+
+			if (FlaxEngine.Content.Load(item.ID) is BinaryAsset test)
+			{
+				test.WaitForLoaded();
+				test.Reimport();
+			}
 		}
 
 		/// <inheritdoc />
 		public override void Deinitialize()
 		{
+			Editor.ContentDatabase.ItemAdded -= ContentDatabase_ItemAdded;
+
 			if (_resourcesWatcher != null)
 			{
 				_resourcesWatcher.Created -= _resoucesBuffer.AddEvent;
