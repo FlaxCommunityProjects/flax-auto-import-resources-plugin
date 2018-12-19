@@ -159,14 +159,13 @@ namespace ResourcesPlugin.Editor
 		{
 			Debug.Log("Created: " + fullPath);
 			string newPath = GetNewPath(fullPath);
+			var newContentFolder = GetOrCreateFolder(newPath);
 			if (File.Exists(newPath))
 			{
-				var item = GetBinaryAssetItem(newPath);
-				Reimport(item);
+				Editor.ContentImporting.Import(fullPath, newContentFolder, true);
 			}
 			else
 			{
-				var newContentFolder = GetOrCreateFolder(newPath);
 				Editor.Windows.MainWindow.BringToFront();
 				Editor.ContentImporting.Import(fullPath, newContentFolder);
 			}
@@ -174,20 +173,19 @@ namespace ResourcesPlugin.Editor
 
 		private void OnChanged(string fullPath)
 		{
-			// Ignore directory changes
+			// Ignore directory changes (not sure about this)
 			if (Directory.Exists(fullPath)) return;
 
 			Debug.Log("Changed: " + fullPath);
 			string newPath = GetNewPath(fullPath);
+			var newContentFolder = GetOrCreateFolder(newPath);
 			if (File.Exists(newPath))
 			{
-				var item = GetBinaryAssetItem(newPath);
-				Reimport(item);
+				Editor.ContentImporting.Import(fullPath, newContentFolder, true);
 			}
 			else
 			{
 				Debug.Log("Changed but import it? Huh?");
-				var newContentFolder = GetOrCreateFolder(newPath);
 				Editor.Windows.MainWindow.BringToFront();
 				Editor.ContentImporting.Import(fullPath, newContentFolder);
 			}
@@ -244,82 +242,6 @@ namespace ResourcesPlugin.Editor
 		private BinaryAssetItem GetBinaryAssetItem(string path)
 		{
 			return Editor.ContentDatabase.Find(path) as BinaryAssetItem;
-		}
-
-		private void Reimport(BinaryAssetItem item)
-		{
-			switch (item.ItemDomain)
-			{
-			case ContentDomain.Animation:
-			{
-				break;
-			}
-			case ContentDomain.Audio:
-			{
-				break;
-			}
-			case ContentDomain.CubeTexture:
-			{
-				break;
-			}
-			case ContentDomain.Document:
-			{
-				break;
-			}
-			case ContentDomain.Font:
-			{
-				break;
-			}
-			case ContentDomain.IESProfile:
-			{
-				break;
-			}
-			case ContentDomain.Invalid:
-			{
-				break;
-			}
-			case ContentDomain.Material:
-			{
-				break;
-			}
-			case ContentDomain.Model:
-			{
-				break;
-			}
-			case ContentDomain.Other:
-			{
-				break;
-			}
-			case ContentDomain.Prefab:
-			{
-				break;
-			}
-			case ContentDomain.Scene:
-			{
-				break;
-			}
-			case ContentDomain.Shader:
-			{
-				break;
-			}
-			case ContentDomain.SkeletonMask:
-			{
-				break;
-			}
-			case ContentDomain.Texture:
-			{
-				break;
-			}
-			}
-			//var proxy = Editor.ContentDatabase.GetProxy(item);
-			//Editor.ContentImporting.Reimport(item); // TODO: Settings!
-			// The window pops up every single time.
-
-			if (FlaxEngine.Content.Load(item.ID) is BinaryAsset test)
-			{
-				test.WaitForLoaded();
-				test.Reimport();
-			}
 		}
 
 		/// <inheritdoc />
