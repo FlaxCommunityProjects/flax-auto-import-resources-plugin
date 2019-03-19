@@ -1,5 +1,3 @@
 # Auto Import Resources Plugin
 
-Still a WIP.
-
-Currently, it just imports whatever is added to the `Content/Resources` directory to the `Content/Imported` directory. 
+Automagically imports everything from the `Assets` folder into `Content/Imported`. Whenever you change something, it re-imports it.
