@@ -6,18 +6,17 @@ using System.Text;
 using System.Threading.Tasks;
 using FlaxEngine;
 
-namespace ResourcesPlugin.Editor
+namespace ResourcesPlugin.Source.Editor
 {
-	public class FileSystemWatcherBuffer : IDisposable
+	/// <summary>
+	/// Buffers the events of a <see cref="FileSystemWatcher"/>
+	/// </summary>
+	public class FileSystemEventBuffer : IDisposable
 	{
 		private Dictionary<string, WatcherChangeTypes> _changedPaths = new Dictionary<string, WatcherChangeTypes>();
 		private Dictionary<string, WatcherChangeTypes> _currentChangedPaths = new Dictionary<string, WatcherChangeTypes>();
 
-		private readonly System.Timers.Timer _timer = new System.Timers.Timer(1000);
-
-		public FileSystemWatcherBuffer()
-		{
-		}
+		private readonly System.Timers.Timer _timer = new System.Timers.Timer(500);
 
 		public double EventInterval
 		{
@@ -54,10 +53,16 @@ namespace ResourcesPlugin.Editor
 			RaiseEvents();
 		}
 
-		public void AddEvent(object sender, FileSystemEventArgs e)
+		public void ChangeEvent(object sender, RenamedEventArgs e)
+		{
+			_changedPaths.Add(e.OldFullPath, WatcherChangeTypes.Deleted);
+			_changedPaths.Add(e.FullPath, WatcherChangeTypes.Created);
+		}
+
+		public void ChangeEvent(object sender, FileSystemEventArgs e)
 		{
 			//WatcherChangeTypes
-			string path = StringUtils.NormalizePath(e.FullPath);
+			string path = e.FullPath;
 
 			if (_changedPaths.TryGetValue(path, out WatcherChangeTypes changeType))
 			{
@@ -157,19 +162,11 @@ namespace ResourcesPlugin.Editor
 			}
 		}
 
-		// TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-		// ~FileSystemWatcherBuffer() {
-		//   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-		//   Dispose(false);
-		// }
-
 		// This code added to correctly implement the disposable pattern.
 		public void Dispose()
 		{
 			// Do not change this code. Put cleanup code in Dispose(bool disposing) above.
 			Dispose(true);
-			// TODO: uncomment the following line if the finalizer is overridden above.
-			// GC.SuppressFinalize(this);
 		}
 
 		#endregion IDisposable Support

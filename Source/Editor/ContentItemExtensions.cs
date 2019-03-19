@@ -6,15 +6,10 @@ using System.Threading.Tasks;
 using FlaxEditor.Content;
 using FlaxEngine;
 
-namespace ResourcesPlugin.Editor
+namespace ResourcesPlugin.Source.Editor
 {
 	internal static class ContentItemExtensions
 	{
-		internal static bool IsChildOf(this ContentItem contentItem, ContentFolder parent)
-		{
-			return contentItem.Path.StartsWith(parent.Path);
-		}
-
 		// From: https://stackoverflow.com/a/929418/3492994
 		internal static IEnumerable<ContentItem> GetChildrenRecursive(this ContentFolder contentFolder)
 		{
